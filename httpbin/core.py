@@ -25,6 +25,8 @@ from .helpers import get_headers, status_code, get_dict, get_request_range, chec
 from .utils import weighted_choice
 from .structures import CaseInsensitiveDict
 
+from time import sleep
+
 ENV_COOKIES = (
     '_gauges_unique',
     '_gauges_unique_year',
@@ -283,6 +285,23 @@ def stream_n_messages(n):
         "Content-Type": "application/json",
         })
 
+@app.route('/stream-delay/<int:n>')
+def stream_delay_messages(n):
+    """Stream n JSON messages with 10s delay every 100"""
+    response = get_dict('url', 'args', 'headers', 'origin')
+    n = min(n, 10000)
+
+    def generate_stream():
+        for i in range(n):
+            response['id'] = i
+            yield json.dumps(response) + '\n'
+            sleep(0.01)
+            if i > 0 and i % 100 == 0:
+                sleep(10)
+
+    return Response(generate_stream(), headers={
+        "Content-Type": "application/json",
+        })
 
 @app.route('/status/<codes>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'TRACE'])
 def view_status_code(codes):
